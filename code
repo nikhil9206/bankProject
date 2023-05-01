@@ -1,0 +1,136 @@
+mport mysql.connector as mysql
+from tkinter import *
+import tkinter.messagebox as MessageBox
+
+
+class User:
+    def __init__(self, username, password, amount):
+        self.username = username
+        self.password = password
+        self.amount = amount
+        
+    def deposit(self, amount):
+        self.amount += amount
+        self.add_amount()
+        print(f"Deposited Amount: ${amount}")
+        print(f"Current Amount: ${self.amount}")
+        
+    def withdraw(self, amount):
+        if amount <= self.amount:
+            self.amount -= amount
+            print(f"Withdrawn Amount: ${amount}")
+            print(f"Current Amount: ${self.amount}")
+        else:
+            print("Insufficient balance.")
+        self.add_amount()
+
+    def view_balance(self):
+        print(f"Current Balance: ${self.amount}")
+
+    
+    def add_amount(self):
+        connection = mysql.connect(user="root", database="one", password="August2008")
+        cursor = connection.cursor(buffered=True)
+        query = ("insert into Users values (%s, %s, %s)")
+        val = (self.username, self.password, self.amount)
+        cursor.execute(query, val)
+        connection.commit()
+        cursor.clear_attributes()
+        connection.close()
+
+    def exit(self):
+        connection = mysql.connect(user="root", database="one", password="August2008")
+        cursor = connection.cursor(buffered=True)
+        query = ("update Users set balance = %s where username = %s")
+        val = (self.amount, self.username)
+        cursor.execute(query, val)
+        connection.commit()
+        cursor.close()
+        connection.close()
+    
+
+
+
+class One:
+    def __init__(self):
+        self.users = {}
+        self.enter_account()
+        
+    def new_user(self, username, password):
+        if username in self.users:
+            print("Username already in use. Pick another username.")
+        else:
+            user = User(username, password, 0)
+            self.users[username] = user
+            user.add_amount()
+            print("Sign up successful. You can now log in.")
+            
+    def log_in(self, username, password):
+        if username in self.users:
+         user = self.users[username]
+        if user.password == password:
+            print(f"Welcome back, {username}!")
+            return user
+        elif user.password != password:
+            print("Incorrect password. Please try again.")
+        elif user.username != username:
+            print("Username not found. Please sign up first.")
+        else:
+            print("Please re-enter credentials.")
+
+    def enter_account(self):
+        connection = mysql.connect(user="root", database="one", password="August2008")
+        cursor = connection.cursor(buffered=True)
+        query = ("select * from Users")
+        cursor.execute(query)
+        for (username, password, amount) in cursor:
+            self.users[username] = User(username, password, amount)
+        cursor.close()
+        connection.close()
+
+    def home_screen(self):
+        while True:
+            print("Sign Up")
+            print("Log In")
+            print("Quit")
+            option = input("Enter your option: ")
+
+            if option == "Sign Up":
+                username = input("Enter username: ")
+                password = input("Enter password: ")
+                self.sign_up(username, password)
+            elif option == "Log In":
+                username = input("Enter username: ")
+                password = input("Enter password: ")
+                user = self.log_in(username, password)
+                if user:
+                    self.options(user)
+            elif option == "Quit":
+                print(f"Bye, {user.name}!")
+            else:
+                print(" ")
+
+    def options(self, user):
+        while True:
+            print("Deposit")
+            print("Withdraw")
+            print("Check Balance")
+            print("Exit")
+            option = input("Enter your option: ")
+
+            if option == "Deposit":
+                amount = float(input("Enter amount: $"))
+                user.deposit(amount)
+            elif option == "Withdraw":
+                amount = float(input("Enter amount: $"))
+                user.withdraw(amount)
+            elif option == "Check Balance":
+                user.view_balance()
+            elif option == "Exit":
+                print(f"Bye, {user.name}!")
+            else:
+                print("Invalid option.")
+
+
+one = One()
+one.home_screen()
